@@ -1,15 +1,13 @@
-﻿using System;
-
-namespace Tasks
+﻿namespace Tasks
 {
-	public interface IConsole
-	{
-		string ReadLine();
+    public interface IConsole
+    {
+        string ReadLine();
 
-		void Write(string format, params object[] args);
+        void Write(string format, params object[] args);
 
-		void WriteLine(string format, params object[] args);
+        void WriteLine(string format, params object[] args);
 
-		void WriteLine();
-	}
+        void WriteLine();
+    }
 }
