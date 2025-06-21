@@ -1,6 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
+using Tasks.Entity;
+using Tasks.Io;
+using Tasks.ValueObject;
 
 namespace Tasks
 {
@@ -8,7 +10,7 @@ namespace Tasks
     {
         private const string QUIT = "quit";
 
-        private readonly IDictionary<string, IList<Task>> tasks = new Dictionary<string, IList<Task>>();
+        private readonly ToDoList tasks = new ToDoList();
         private readonly IConsole console;
 
         private long lastId = 0;
@@ -66,10 +68,10 @@ namespace Tasks
 
         private void Show()
         {
-            foreach (var project in tasks)
+            foreach (var project in tasks.GetProjects())
             {
-                console.WriteLine(project.Key);
-                foreach (var task in project.Value)
+                console.WriteLine(project.GetProjectName());
+                foreach (var task in project.GetTasks())
                 {
                     console.WriteLine("    [{0}] {1}: {2}", (task.Done ? 'x' : ' '), task.Id, task.Description);
                 }
@@ -83,25 +85,26 @@ namespace Tasks
             var subcommand = subcommandRest[0];
             if (subcommand == "project")
             {
-                AddProject(subcommandRest[1]);
+                AddProject(new ProjectName(subcommandRest[1]));
             }
             else if (subcommand == "task")
             {
                 var projectTask = subcommandRest[1].Split(" ".ToCharArray(), 2);
-                AddTask(projectTask[0], projectTask[1]);
+                AddTask(new ProjectName(projectTask[0]), projectTask[1]);
             }
         }
 
-        private void AddProject(string name)
+        private void AddProject(ProjectName projectName)
         {
-            tasks[name] = new List<Task>();
+            tasks.AddProject(projectName);
         }
 
-        private void AddTask(string project, string description)
+        private void AddTask(ProjectName projectName, string description)
         {
-            if (!tasks.TryGetValue(project, out IList<Task> projectTasks))
+            var projectTasks = tasks.GetTasks(projectName);
+            if (projectTasks == null)
             {
-                Console.WriteLine("Could not find a project with the name \"{0}\".", project);
+                Console.WriteLine("Could not find a project with the name \"{0}\".", projectName);
                 return;
             }
             projectTasks.Add(new Task { Id = NextId(), Description = description, Done = false });
@@ -121,9 +124,9 @@ namespace Tasks
         {
             int id = int.Parse(idString);
             var identifiedTask = tasks
-                .Select(project => project.Value.FirstOrDefault(task => task.Id == id))
-                .Where(task => task != null)
-                .FirstOrDefault();
+                .GetProjects()
+                .SelectMany(project => project.GetTasks())
+                .FirstOrDefault(task => task.Id == id);
             if (identifiedTask == null)
             {
                 console.WriteLine("Could not find a task with an ID of {0}.", id);
